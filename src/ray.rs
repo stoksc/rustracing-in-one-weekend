@@ -15,6 +15,6 @@ impl<'a> Ray<'a> {
     }
 
     pub fn point_at_parameter(&self, t: f32) -> Vec3 {
-        self.a.clone() * t
+        self.a + &(t * self.b)
     }
 }

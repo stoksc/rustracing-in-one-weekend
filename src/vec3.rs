@@ -1,6 +1,6 @@
 use std::ops;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Vec3(pub f32, pub f32, pub f32);
 
 pub fn dot(left: &Vec3, other: &Vec3) -> f32 {
