@@ -1,27 +1,22 @@
+use rustracing::hitable::{HitRecord, Hitable};
+use rustracing::hitable_list::HitableList;
 use rustracing::ray::Ray;
-use rustracing::vec3::{self, Vec3};
+use rustracing::sphere::Sphere;
+use rustracing::vec3::Vec3;
 
-fn hit_sphere(center: &Vec3, radius: f32, ray: &Ray) -> Option<f32> {
-    let oc = ray.origin() - center;
-    let a = vec3::dot(ray.direction(), ray.direction());
-    let b = 2.0 * vec3::dot(&oc, ray.direction());
-    let c = vec3::dot(&oc, &oc) - radius * radius;
-    let discriminant = b * b - 4.0 * a * c;
-    if discriminant > 0.0 {
-        Some((-b - discriminant.sqrt()) / (2.0 * a))
+fn color(ray: &Ray, world: &Hitable) -> Vec3 {
+    let mut rec = HitRecord::new();
+    if world.hit(ray, 0.0, std::f32::MAX, &mut rec) {
+        Vec3(
+            rec.normal.x() + 1.0,
+            rec.normal.y() + 1.0,
+            rec.normal.z() + 1.0,
+        ) * 0.5
     } else {
-        None
+        let unit_direction = ray.direction().unit_vector();
+        let t = 0.5 * (unit_direction.y() + 1.0);
+        (1.0 - t) * &Vec3(1.0, 1.0, 1.0) + t * &Vec3(0.5, 0.7, 1.0)
     }
-}
-
-fn color(ray: &Ray) -> Vec3 {
-    if let Some(t) = hit_sphere(&Vec3(0.0, 0.0, -1.0), 0.5, ray) {
-        let normal = (ray.point_at_parameter(t) - Vec3(0.0, 0.0, -1.0)).unit_vector();
-        return Vec3(normal.x() + 1.0, normal.y() + 1.0, normal.z() + 1.0) * 0.5;
-    }
-    let unit_direction = ray.direction().unit_vector();
-    let t = 0.5 * (unit_direction.y() + 1.0);
-    (1.0 - t) * &Vec3(1.0, 1.0, 1.0) + t * &Vec3(0.5, 0.7, 1.0)
 }
 
 fn main() {
@@ -34,15 +29,26 @@ fn main() {
     let vertical = &Vec3(0.0, 2.0, 0.0);
     let origin = &Vec3(0.0, 0.0, 0.0);
 
+    let mut world = HitableList::new();
+    world
+        .list
+        .push(Box::new(Sphere::new(Vec3(0.0, 0.0, -1.0), 0.5)));
+    world
+        .list
+        .push(Box::new(Sphere::new(Vec3(0.0, -100.5, -1.0), 100.0)));
+
     for j in (0..ny).rev() {
         for i in 0..nx {
             let u = i as f32 / nx as f32;
             let v = j as f32 / ny as f32;
 
-            let pixel = color(&Ray {
-                a: &origin,
-                b: &(&(u * horizontal + v * vertical) + lower_left_corner),
-            });
+            let pixel = color(
+                &Ray {
+                    a: &origin,
+                    b: &(&(u * horizontal + v * vertical) + lower_left_corner),
+                },
+                &world,
+            );
 
             let ir = (pixel.r() * 255.99) as isize;
             let ig = (pixel.g() * 255.99) as isize;
