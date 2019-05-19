@@ -1,5 +1,8 @@
 extern crate rand;
 
+use std::fs::File;
+use std::io::Write;
+
 use rand::Rng;
 
 use rustracing::camera::Camera;
@@ -9,14 +12,18 @@ use rustracing::ray::Ray;
 use rustracing::sphere::Sphere;
 use rustracing::vec3::Vec3;
 
-fn color(ray: &Ray, world: &Hitable) -> Vec3 {
+fn color(ray: &Ray, world: &Hitable, depth: usize) -> Vec3 {
     let mut rec = HitRecord::new();
     if world.hit(ray, 0.0, std::f32::MAX, &mut rec) {
-        Vec3(
-            rec.normal.x() + 1.0,
-            rec.normal.y() + 1.0,
-            rec.normal.z() + 1.0,
-        ) * 0.5
+        let target = rec.p.clone() + rec.normal.clone() + Sphere::rand_point_in_unit_sphere();
+        0.5 * &color(
+            &Ray {
+                a: rec.p.clone(),
+                b: target - rec.p.clone(),
+            },
+            world,
+            depth + 1,
+        )
     } else {
         let unit_direction = ray.direction().unit_vector();
         let t = 0.5 * (unit_direction.y() + 1.0);
@@ -24,11 +31,14 @@ fn color(ray: &Ray, world: &Hitable) -> Vec3 {
     }
 }
 
-fn main() {
-    let nx = 1000;
-    let ny = 500;
+fn main() -> std::io::Result<()> {
+    let mut buffer = File::create("output/image.ppm")?;
+
+    let nx = 700;
+    let ny = 350;
     let ns = 100;
-    println!("P3\n{} {}\n255", nx, ny);
+
+    buffer.write_fmt(format_args!("P3\n{} {}\n255\n", nx, ny))?;
 
     let mut world = HitableList::new();
     world
@@ -49,14 +59,15 @@ fn main() {
                 let v = (rng.gen::<f32>() + j as f32) / ny as f32;
 
                 let ray = camera.get_ray(u, v);
-                col += color(&ray, &world);
+                col += color(&ray, &world, 0);
             }
             col /= ns as f32;
 
             let ir = (col.r() * 255.99) as isize;
             let ig = (col.g() * 255.99) as isize;
             let ib = (col.b() * 255.99) as isize;
-            println!("{} {} {}", ir, ig, ib);
+            buffer.write_fmt(format_args!("{} {} {}\n", ir, ig, ib))?;
         }
     }
+    Ok(())
 }

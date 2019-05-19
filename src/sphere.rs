@@ -1,3 +1,7 @@
+extern crate rand;
+
+use rand::Rng;
+
 use crate::hitable::{HitRecord, Hitable};
 use crate::ray::Ray;
 use crate::vec3::{self, Vec3};
@@ -13,6 +17,19 @@ impl Sphere {
             center: c,
             radius: r,
         }
+    }
+
+    pub fn rand_point_in_unit_sphere() -> Vec3 {
+        let mut rng = rand::thread_rng();
+        for _ in 0..3 {
+            let attempt = 2.0 * &Vec3(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>())
+                - Vec3(1.0, 1.0, 1.0);
+            if attempt.squared_length() >= 1.0 {
+                continue;
+            }
+            return attempt;
+        }
+        Vec3(0.0, 0.0, 0.0)
     }
 }
 

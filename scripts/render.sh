@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 
-cargo run --release > output/image.ppm
+rm output/image.ppm
+
+cargo run --release && \
 open output/image.ppm
